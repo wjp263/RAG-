@@ -71,12 +71,12 @@ class RagService(object):
 
 "============================================================================"
 """Agent"""
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 
 class AgentService:
     def __init__(self):
         from langchain_community.chat_models.tongyi import ChatTongyi
-        from langchain.agents import create_agent
+        from langgraph.prebuilt import create_react_agent 
         from langgraph.checkpoint.memory import MemorySaver
         from tools import search_knowledge_base, calculator
         import config_data as config
@@ -84,7 +84,7 @@ class AgentService:
         self.tools = [search_knowledge_base, calculator]
         self.llm = ChatTongyi(model=config.chat_model_name, temperature=0)
         self.checkpointer = MemorySaver()
-        self.agent = create_agent(
+        self.agent = create_react_agent(
             model=self.llm,
             tools=self.tools,
             checkpointer=self.checkpointer,
