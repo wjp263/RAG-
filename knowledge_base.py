@@ -66,6 +66,42 @@ class KnowledgeBaseService(object):
             length_function=len,                # 使用Python自带的len函数做长度统计的依据
         )     # 文本分割器的对象
 
+        # ---- 新增：检查并加载初始知识库 ----
+        self._check_and_load_initial_data()
+
+    def _check_and_load_initial_data(self):
+        """检查向量库是否为空，若为空则从 initial_knowledge.txt 加载初始数据"""
+        try:
+            # 获取集合中的文档数量（粗略判断是否为空）
+            # 注意：Chroma 的 get() 可能返回很多数据，这里只取一个文档来快速判断
+            existing_docs = self.chroma.get(limit=1)
+            if existing_docs and existing_docs['ids']:
+                logger.info("向量数据库已有数据，跳过初始知识库加载")
+                return
+        except Exception as e:
+            logger.warning(f"检查向量库数据时出错: {e}，将尝试加载初始数据")
+
+        # 尝试读取初始知识库文件
+        initial_file_path = "initial_knowledge.txt"
+        if not os.path.exists(initial_file_path):
+            logger.info("未找到 initial_knowledge.txt 文件，跳过初始加载")
+            return
+
+        try:
+            with open(initial_file_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            if not content:
+                logger.info("initial_knowledge.txt 文件为空，跳过加载")
+                return
+
+            logger.info("检测到向量库为空，开始加载初始知识库...")
+            # 调用 upload_by_str 方法载入，传入一个固定的虚拟文件名
+            result = self.upload_by_str(content, "initial_knowledge.txt")
+            logger.info(f"初始知识库加载完成: {result}")
+        except Exception as e:
+            logger.error(f"加载初始知识库失败: {e}")
+
+    # 以下原有的 upload_by_str 方法保持不变...
     def upload_by_str(self, data: str, filename):
         """将传入的字符串，进行向量化，存入向量数据库中"""
         # 先得到传入字符串的md5值
@@ -83,11 +119,10 @@ class KnowledgeBaseService(object):
         metadata = {
             "source": filename,
             "create_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "operator": "小吴",
+            "operator": "system",   # 将默认操作员改为通用名称
         }
 
-        self.chroma.add_texts(      # 内容就加载到向量库中了
-            # iterable -> list \ tuple
+        self.chroma.add_texts(
             knowledge_chunks,
             metadatas=[metadata for _ in knowledge_chunks],
         )
