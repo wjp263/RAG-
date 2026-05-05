@@ -1,4 +1,7 @@
 """Streamlit 智能客服前端"""
+import os
+os.environ["OTEL_SDK_DISABLED"] = "true"
+
 from rag import RagService,AgentService
 import streamlit as st
 import config_data as config
